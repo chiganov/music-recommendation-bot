@@ -1,5 +1,6 @@
 import requests
 import datetime
+import logging
 
 
 class SpotifyManager:
@@ -61,6 +62,9 @@ class SpotifyManager:
                 },
             )
             data = r.json()
+            if 'items' not in data:
+                logging.error(f'Spotify API error: {data}')
+                raise KeyError('items')
             data = [item['id'] for item in data['items']]
             if data:
                 result += data
@@ -86,6 +90,9 @@ class SpotifyManager:
                 },
             )
             data = r.json()
+            if 'items' not in data:
+                logging.error(f'Spotify API error: {data}')
+                raise KeyError('items')
             data = [item['name'] for item in data['items']]
             if data:
                 result += data
