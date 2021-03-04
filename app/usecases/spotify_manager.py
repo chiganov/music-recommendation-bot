@@ -1,6 +1,7 @@
 import requests
 import datetime
 import logging
+import time
 
 
 class SpotifyManager:
@@ -61,7 +62,13 @@ class SpotifyManager:
                     'access_token': access_token,
                 },
             )
+                
             data = r.json()
+            if 'error' in data and data['error'].get('status') == 429:
+                logging.debug('Spotify Retry-After')
+                time.sleep(int(r.headers['Retry-After']))
+                continue
+
             if 'items' not in data:
                 logging.error(f'Spotify API error: {data}')
                 raise KeyError('items')
@@ -90,6 +97,10 @@ class SpotifyManager:
                 },
             )
             data = r.json()
+            if 'error' in data and data['error'].get('status') == 429:
+                logging.debug('Spotify Retry-After')
+                time.sleep(int(r.headers['Retry-After']))
+                continue
             if 'items' not in data:
                 logging.error(f'Spotify API error: {data}')
                 raise KeyError('items')
