@@ -41,16 +41,15 @@ class SpotifyManager:
             )
             data = r.json()
             if 'error' in data and data['error'].get('status') == 429:
-                logging.debug('Spotify Retry-After')
-                time.sleep(int(r.headers['Retry-After']))
+                wait_for_time = int(r.headers['Retry-After']) + 2
+                logging.info(f'Spotify Retry-After: {wait_for_time}')
+                time.sleep(wait_for_time)
                 continue
             break
-        if not data['artists']['items']:
-            return None
-        data = data['artists']['items'][0]
-        if data['name'] != name:
-            return
-        return data['id']
+        for data in data['artists'].get('items',[]):
+            if data['name'] == name:
+                return data['id']
+        return None
 
     def get_albums_ids_by_artist_id(self, artist_id):
         flag = True
@@ -71,8 +70,9 @@ class SpotifyManager:
                 
             data = r.json()
             if 'error' in data and data['error'].get('status') == 429:
-                logging.debug('Spotify Retry-After')
-                time.sleep(int(r.headers['Retry-After']))
+                wait_for_time = int(r.headers['Retry-After']) + 2
+                logging.info(f'Spotify Retry-After: {wait_for_time}')
+                time.sleep(wait_for_time)
                 continue
 
             if 'items' not in data:
@@ -104,8 +104,9 @@ class SpotifyManager:
             )
             data = r.json()
             if 'error' in data and data['error'].get('status') == 429:
-                logging.debug('Spotify Retry-After')
-                time.sleep(int(r.headers['Retry-After']))
+                wait_for_time = int(r.headers['Retry-After']) + 2
+                logging.info(f'Spotify Retry-After: {wait_for_time}')
+                time.sleep(wait_for_time)
                 continue
             if 'items' not in data:
                 logging.error(f'Spotify API error: {data}')
