@@ -1,0 +1,7 @@
+venv
+.vscode
+.autoenv
+.env
+*.db
+*.ipynb
+*.pyc
