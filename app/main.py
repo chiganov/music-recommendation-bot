@@ -46,7 +46,7 @@ class App:
             vcm = VkontakteClubManager(self.config['VK_KEY'], club)
 
             for vk_albom in vcm.alboms:
-                logging.info(f'start looking for an abom: {vk_albom};')
+                logging.info(f'start looking for an albom: {vk_albom};')
 
                 vk_albom_hash = f'vk_albom_{str(hash(vk_albom))}'
                 if vk_albom_hash in cache:

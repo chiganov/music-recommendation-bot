@@ -30,15 +30,21 @@ class SpotifyManager:
         return self._access_token
 
     def get_artist_id_by_name(self, name):
-        r = requests.get(
-            'https://api.spotify.com/v1/search',
-            params={
-                'q': name,
-                'type': 'artist',
-                'access_token': self._get_access_token()
-            },
-        )
-        data = r.json()
+        while True:
+            r = requests.get(
+                'https://api.spotify.com/v1/search',
+                params={
+                    'q': name,
+                    'type': 'artist',
+                    'access_token': self._get_access_token()
+                },
+            )
+            data = r.json()
+            if 'error' in data and data['error'].get('status') == 429:
+                logging.debug('Spotify Retry-After')
+                time.sleep(int(r.headers['Retry-After']))
+                continue
+            break
         if not data['artists']['items']:
             return None
         data = data['artists']['items'][0]
