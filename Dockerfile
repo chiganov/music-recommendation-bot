@@ -9,4 +9,4 @@ RUN pip3 install -r requirements.txt
 COPY app /app/app
 
 ENV PYTHONPATH=/app
-CMD ["python", "/app/app/main.py"]
+CMD ["python", "-u", "/app/app/main.py"]

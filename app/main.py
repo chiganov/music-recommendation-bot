@@ -94,7 +94,7 @@ interrupted = False
 def signal_handler(signal, frame):
     global interrupted
     if interrupted:
-        print('Abort;')
+        print('abort;')
         exit()
     interrupted = True
 
@@ -106,12 +106,12 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     app = App()
     if app.config is None:
-        print("Exit with error;")
+        print("exit with error;")
         exit(1)
     while True:
         app.run()
         if interrupted:
-            print("Exit")
+            print("Exit;")
             break
         print('sleep for houer;')
         time.sleep(SLEEP_TIME)
