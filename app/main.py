@@ -61,7 +61,7 @@ class App:
                 try:
                     logging.info(f"start looking for an Album: {vk_album};")
 
-                    vk_album_hash = f"vk_albom_{str(hash(vk_album))}"
+                    vk_album_hash = f"vk_album_{str(hash(vk_album))}"
                     if vk_album_hash in cache:
                         logging.info(f"Album is in the cache: {vk_album_hash};")
                         continue
@@ -170,5 +170,5 @@ if __name__ == "__main__":
         if interrupted:
             print("Exit;")
             break
-        print("sleep for houer;")
+        print("sleep for an hour;")
         time.sleep(SLEEP_TIME)

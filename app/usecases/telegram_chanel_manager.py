@@ -56,13 +56,13 @@ class TelegramChanelManager:
         return r.json().get('ok', False)
 
     def add_post(self, post: TelegramPost):
-        text = post.get_html_text()
-        if self._get_post_by_text(text) or self._get_post_by_text(post.spotify_url):
+        post_url = post.spotify_url
+        if self._get_post_by_text(post_url):
             logging.info('Post already exists')
             return
         db_post = TelegramPostModel(
             date=datetime.datetime.now(),
-            text=text,
+            text=post_url,
         )
         self._send_post_to_channel(post)
         self._add_post_to_db(db_post)
