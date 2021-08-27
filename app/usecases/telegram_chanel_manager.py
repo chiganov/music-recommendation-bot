@@ -3,10 +3,10 @@ import logging
 import sqlite3
 
 import requests
-from app.entities import TelegramPost
+from app.entities import TelegramPostModel, TelegramPost
 
 
-class TelegramChanalManager:
+class TelegramChanelManager:
     def __init__(self, key, chat_id, db_name):
         self.key = key
         self.chat_id = chat_id
@@ -27,7 +27,7 @@ class TelegramChanalManager:
         result = []
         with self.conn:
             result = self.conn.execute("""SELECT id, date, text FROM posts LIMIT (?);""", (limit,))
-        return [TelegramPost(date=r[1], text=r[2]) for r in result]
+        return [TelegramPostModel(date=r[1], text=r[2]) for r in result]
 
     def _add_post_to_db(self, post):
         with self.conn:
@@ -39,26 +39,31 @@ class TelegramChanalManager:
         data = result.fetchone()
         if data is None:
             return
-        return TelegramPost(date=data[1], text=data[2])
+        return TelegramPostModel(date=data[1], text=data[2])
 
-    def _send_post_to_channal(self, post):
+    def _send_post_to_channel(self, post: TelegramPost):
         r = requests.post(
-            f'https://api.telegram.org/bot{self.key}/sendMessage',
+            f'https://api.telegram.org/bot{self.key}/sendPhoto',
             data={
-                'text': post.text,
+                'parse_mode': 'html',
+                'caption': post.get_html_text(),
                 'chat_id': self.chat_id,
             },
+            files={
+                'photo': post.image
+            }
         )
         return r.json().get('ok', False)
 
-    def add_post(self, text):
+    def add_post(self, post: TelegramPost):
+        text = post.get_html_text()
         if self._get_post_by_text(text):
             logging.info('Post already exists')
             return
-        post = TelegramPost(
+        db_post = TelegramPostModel(
             date=datetime.datetime.now(),
             text=text,
         )
-        self._send_post_to_channal(post)
-        self._add_post_to_db(post)
-        self.posts.append(post)
+        self._send_post_to_channel(post)
+        self._add_post_to_db(db_post)
+        self.posts.append(db_post)
