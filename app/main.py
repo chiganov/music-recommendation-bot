@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import signal
+import traceback
 
 
 from app.usecases import (
@@ -56,84 +57,92 @@ class App:
 
             vcm = VkontakteClubManager(self.config["VK_KEY"], club)
 
-            for vk_Album in vcm.Albums:
-                logging.info(f"start looking for an Album: {vk_Album};")
+            for vk_album in vcm.albums:
+                try:
+                    logging.info(f"start looking for an Album: {vk_album};")
 
-                vk_Album_hash = f"vk_Album_{str(hash(vk_Album))}"
-                if vk_Album_hash in cache:
-                    logging.info(f"Album is in the cache: {vk_Album_hash};")
-                    continue
+                    vk_album_hash = f"vk_albom_{str(hash(vk_album))}"
+                    if vk_album_hash in cache:
+                        logging.info(f"Album is in the cache: {vk_album_hash};")
+                        continue
 
-                match_sm_artist_id = None
-                match_sm_album_id = None
+                    match_sm_artist_id = None
+                    match_sm_album_id = None
 
-                sm_artist_id = sm.get_artist_id_by_name(vk_Album.artist)
-                if sm_artist_id is None:
+                    sm_artist_id = sm.get_artist_id_by_name(vk_album.artist)
+                    if sm_artist_id is None:
+                        logging.info(
+                            f"artist with name {vk_album.artist} is not found in spotify;"
+                        )
+                        continue
+
+                    match_sm_artist_id = sm_artist_id
+
                     logging.info(
-                        f"artist with name {vk_Album.artist} is not found in spotify;"
+                        f"artist {vk_album.artist} from vk is matched to {match_sm_artist_id} match_sm_artist_id;"
                     )
-                    continue
 
-                match_sm_artist_id = sm_artist_id
+                    sm_albums = {}
+                    sm_albums_ids = sm.get_albums_ids_by_artist_id(sm_artist_id)
+                    for id_ in sm_albums_ids:
+                        sm_albums[id_] = sm.get_truck_names_for_album_id(id_)
 
-                logging.info(
-                    f"artist {vk_Album.artist} from vk is matched to {match_sm_artist_id} match_sm_artist_id;"
-                )
+                    vk_tracks_set = set(vk_album.trucks)
 
-                sm_albums = {}
-                sm_albums_ids = sm.get_albums_ids_by_artist_id(sm_artist_id)
-                for id_ in sm_albums_ids:
-                    sm_albums[id_] = sm.get_truck_names_for_album_id(id_)
+                    for sm_album_id, sm_track_names in sm_albums.items():
+                        sm_track_names_set = set(sm_track_names)
+                        intersection_over_union = len(
+                            vk_tracks_set & sm_track_names_set
+                        ) / len(vk_tracks_set | sm_track_names_set)
+                        if intersection_over_union >= INTERSECTION_THRESHOLD:
+                            match_sm_album_id = sm_album_id
+                            break
 
-                vk_tracks_set = set(vk_Album.trucks)
-
-                for sm_album_id, sm_track_names in sm_albums.items():
-                    sm_track_names_set = set(sm_track_names)
-                    intersection_over_union = len(
-                        vk_tracks_set & sm_track_names_set
-                    ) / len(vk_tracks_set | sm_track_names_set)
-                    if intersection_over_union >= INTERSECTION_THRESHOLD:
-                        match_sm_album_id = sm_album_id
-                        break
-
-                (
-                    artist_name,
-                    artist_type,
-                    listeners_per_month,
-                    artist_image,
-                ) = sm.get_artist_by_id(match_sm_artist_id)
-                if match_sm_album_id:
-                    # IF ALBUM
                     (
-                        album_name,
-                        album_type,
-                        truck_numbers,
-                        release_year,
-                        album_image,
-                    ) = sm.get_album_by_id(match_sm_album_id)
-                    tags = lfm.get_tags_for_albom(artist=artist_name, album=album_name)
-                    if not tags:
+                        artist_name,
+                        artist_type,
+                        listeners_per_month,
+                        artist_image,
+                    ) = sm.get_artist_by_id(match_sm_artist_id)
+                    if match_sm_album_id:
+                        # IF ALBUM
+                        (
+                            album_name,
+                            album_type,
+                            truck_numbers,
+                            release_year,
+                            album_image,
+                        ) = sm.get_album_by_id(match_sm_album_id)
+                        tags = lfm.get_tags_for_albom(
+                            artist=artist_name, album=album_name
+                        )
+                        if not tags:
+                            tags = lfm.get_tags_for_artist(artist=artist_name)
+                        post = TelegramPost(
+                            image=album_image,
+                            tags=tags[:5],
+                            artist=artist_name,
+                            spotify_url=f"https://open.spotify.com/album/{match_sm_album_id}",
+                            album=album_name,
+                            description=f'{album_type} · {truck_numbers} song{truck_numbers>1 and "s" or ""} · {release_year}',
+                        )
+                    else:
                         tags = lfm.get_tags_for_artist(artist=artist_name)
-                    post = TelegramPost(
-                        image=album_image,
-                        tags=tags[:5],
-                        artist=artist_name,
-                        spotify_url=f"https://open.spotify.com/album/{match_sm_album_id}",
-                        album=album_name,
-                        description=f'{album_type} · {truck_numbers} song{truck_numbers>1 and "s" or ""} · {release_year}',
-                    )
-                else:
-                    tags = lfm.get_tags_for_artist(artist=artist_name)
-                    post = TelegramPost(
-                        image=artist_image,
-                        tags=tags[:5],
-                        artist=artist_name,
-                        spotify_url=f"https://open.spotify.com/artist/{match_sm_artist_id}",
-                        description=f"{artist_type} · {listeners_per_month} monthly listeners",
-                    )
+                        post = TelegramPost(
+                            image=artist_image,
+                            tags=tags[:5],
+                            artist=artist_name,
+                            spotify_url=f"https://open.spotify.com/artist/{match_sm_artist_id}",
+                            description=f"{artist_type} · {listeners_per_month} monthly listeners",
+                        )
 
-                tgcm.add_post(post)
-                cache.add(vk_Album_hash)
+                    tgcm.add_post(post)
+                    cache.add(vk_album_hash)
+                except BaseException as exc:
+                    if isinstance(exc, SystemExit):
+                        raise exc 
+                    logging.error(exc)
+                    traceback.print_exc()
 
 
 interrupted = False

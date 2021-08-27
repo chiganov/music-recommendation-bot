@@ -53,4 +53,4 @@ class Album:
     trucks: typing.Tuple[str]
 
     def __str__(self):
-        return f"Album by {self.artist}: {self.trucks[:3]}"
+        return f"Albom by {self.artist}: {self.trucks[:3]}"
